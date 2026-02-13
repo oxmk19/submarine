@@ -15,6 +15,9 @@ class WaterPhysicsConfig:
     center_of_buoyancy_local: np.ndarray = field(
         default_factory=lambda: np.array([0.0, 0.0, 0.05], dtype=np.float64)
     )
+    body_up_axis_local: np.ndarray = field(
+        default_factory=lambda: np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    )
     linear_drag: np.ndarray = field(
         default_factory=lambda: np.array([120.0, 220.0, 220.0], dtype=np.float64)
     )
@@ -28,13 +31,19 @@ class WaterPhysicsConfig:
     angular_damping: np.ndarray = field(
         default_factory=lambda: np.array([32.0, 32.0, 20.0], dtype=np.float64)
     )
-    current_strength: float = 0.35
-    enable_restoring_torque: bool = False
+    current_strength: float = 0.0
+    enable_restoring_torque: bool = True
     restoring_kp: np.ndarray = field(
         default_factory=lambda: np.array([80.0, 80.0, 0.0], dtype=np.float64)
     )
     restoring_kd: np.ndarray = field(
         default_factory=lambda: np.array([15.0, 15.0, 0.0], dtype=np.float64)
+    )
+    enable_attitude_hold: bool = True
+    attitude_hold_kp: float = 220.0
+    attitude_hold_kd: float = 55.0
+    trim_quat_world: np.ndarray = field(
+        default_factory=lambda: np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64)
     )
     max_force: float = 4000.0
     max_torque: float = 2200.0
@@ -102,15 +111,70 @@ def compute_restoring_torque(
     if not config.enable_restoring_torque:
         return np.zeros(3, dtype=np.float64)
 
-    roll, pitch, _ = p.getEulerFromQuaternion(quat_world.tolist())
     r_world_from_body = _rotation_matrix(quat_world)
-    omega_body = r_world_from_body.T @ ang_vel_world
+    world_up = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    body_up_local = np.asarray(config.body_up_axis_local, dtype=np.float64)
+    body_up_norm = np.linalg.norm(body_up_local)
+    if body_up_norm < 1e-9:
+        body_up_local = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+    else:
+        body_up_local = body_up_local / body_up_norm
+    body_up_world = r_world_from_body @ body_up_local
 
-    error = np.array([roll, pitch, 0.0], dtype=np.float64)
-    damping = np.array([omega_body[0], omega_body[1], 0.0], dtype=np.float64)
-    tau_body = -config.restoring_kp * error - config.restoring_kd * damping
-    tau_world = r_world_from_body @ tau_body
+    # Axis-angle style tilt error that is independent of URDF forward-axis convention.
+    tilt_error_world = np.cross(body_up_world, world_up)
+    # Dampen only roll/pitch-rate component (exclude yaw about world-up).
+    omega_tilt_world = ang_vel_world - np.dot(ang_vel_world, world_up) * world_up
+
+    kp = float(np.mean(config.restoring_kp[:2]))
+    kd = float(np.mean(config.restoring_kd[:2]))
+    tau_world = kp * tilt_error_world - kd * omega_tilt_world
     return _clip_norm(tau_world, config.max_torque)
+
+
+def _quat_conjugate(q: np.ndarray) -> np.ndarray:
+    return np.array([-q[0], -q[1], -q[2], q[3]], dtype=np.float64)
+
+
+def _quat_multiply(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
+    x1, y1, z1, w1 = q1
+    x2, y2, z2, w2 = q2
+    return np.array(
+        [
+            w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
+            w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
+        ],
+        dtype=np.float64,
+    )
+
+
+def compute_attitude_hold_torque(
+    quat_world: np.ndarray,
+    ang_vel_world: np.ndarray,
+    config: WaterPhysicsConfig,
+) -> np.ndarray:
+    """
+    PD torque driving current orientation toward trim_quat_world.
+    Uses quaternion error to avoid axis-convention ambiguity.
+    """
+    if not config.enable_attitude_hold:
+        return np.zeros(3, dtype=np.float64)
+
+    q_current = np.asarray(quat_world, dtype=np.float64)
+    q_target = np.asarray(config.trim_quat_world, dtype=np.float64)
+    q_target = q_target / max(np.linalg.norm(q_target), 1e-12)
+    q_current = q_current / max(np.linalg.norm(q_current), 1e-12)
+
+    q_err = _quat_multiply(q_target, _quat_conjugate(q_current))
+    if q_err[3] < 0.0:
+        q_err = -q_err
+
+    # Small-angle approximation: 2 * vector-part is orientation error in radians.
+    rot_err = 2.0 * q_err[:3]
+    tau = config.attitude_hold_kp * rot_err - config.attitude_hold_kd * ang_vel_world
+    return _clip_norm(tau, config.max_torque)
 
 
 def apply_water_forces(client_id: int, body_id: int, config: WaterPhysicsConfig) -> Dict[str, np.ndarray]:
@@ -121,6 +185,7 @@ def apply_water_forces(client_id: int, body_id: int, config: WaterPhysicsConfig)
     """
     pos, quat = p.getBasePositionAndOrientation(body_id, physicsClientId=client_id)
     lin_vel, ang_vel = p.getBaseVelocity(body_id, physicsClientId=client_id)
+    com_local = np.asarray(p.getDynamicsInfo(body_id, -1, physicsClientId=client_id)[3], dtype=np.float64)
     pos = np.asarray(pos, dtype=np.float64)
     quat = np.asarray(quat, dtype=np.float64)
     lin_vel = np.asarray(lin_vel, dtype=np.float64)
@@ -139,8 +204,14 @@ def apply_water_forces(client_id: int, body_id: int, config: WaterPhysicsConfig)
         ang_vel_world=ang_vel,
         config=config,
     )
+    attitude_hold_torque = compute_attitude_hold_torque(
+        quat_world=quat,
+        ang_vel_world=ang_vel,
+        config=config,
+    )
 
     r_world_from_body = _rotation_matrix(quat)
+    com_world = pos + (r_world_from_body @ com_local)
     cob_world = pos + (r_world_from_body @ config.center_of_buoyancy_local)
 
     p.applyExternalForce(
@@ -155,7 +226,7 @@ def apply_water_forces(client_id: int, body_id: int, config: WaterPhysicsConfig)
         objectUniqueId=body_id,
         linkIndex=-1,
         forceObj=drag.tolist(),
-        posObj=pos.tolist(),
+        posObj=com_world.tolist(),
         flags=p.WORLD_FRAME,
         physicsClientId=client_id,
     )
@@ -173,10 +244,18 @@ def apply_water_forces(client_id: int, body_id: int, config: WaterPhysicsConfig)
         flags=p.WORLD_FRAME,
         physicsClientId=client_id,
     )
+    p.applyExternalTorque(
+        objectUniqueId=body_id,
+        linkIndex=-1,
+        torqueObj=attitude_hold_torque.tolist(),
+        flags=p.WORLD_FRAME,
+        physicsClientId=client_id,
+    )
 
     return {
         "buoyancy": buoyancy,
         "drag": drag,
         "damping_torque": damping_torque,
         "restoring_torque": restoring_torque,
+        "attitude_hold_torque": attitude_hold_torque,
     }

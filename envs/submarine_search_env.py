@@ -19,7 +19,11 @@ class SubmarineEnvConfig:
     world_min: np.ndarray = field(default_factory=lambda: np.array([-20.0, -20.0, -20.0], dtype=np.float64))
     world_max: np.ndarray = field(default_factory=lambda: np.array([20.0, 20.0, -1.0], dtype=np.float64))
     start_pos: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, -5.0], dtype=np.float64))
-    start_quat: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float64))
+    # Default includes a 90 deg roll to account for common CAD->URDF axis conventions
+    # where the model appears vertical at identity orientation.
+    start_quat: np.ndarray = field(
+        default_factory=lambda: np.array([0.70710678, 0.0, 0.0, 0.70710678], dtype=np.float64)
+    )
     sim_dt: float = 1.0 / 60.0
     sim_substeps: int = 4
     max_steps: int = 2000
@@ -33,6 +37,10 @@ class SubmarineEnvConfig:
     thruster: ThrusterConfig = field(default_factory=ThrusterConfig)
     water: WaterPhysicsConfig = field(default_factory=WaterPhysicsConfig)
     auto_neutral_buoyancy: bool = True
+    auto_center_of_buoyancy: bool = True
+    center_of_buoyancy_z_offset: float = 0.08
+    auto_level_start: bool = True
+    forward_bias_action: float = 0.08
 
 
 class SubmarineSearchEnv(gym.Env):
@@ -145,9 +153,22 @@ class SubmarineSearchEnv(gym.Env):
                 useFixedBase=False,
                 physicsClientId=self.client_id,
             )
+        if self.config.auto_level_start:
+            leveled_quat = self._find_horizontal_start_quaternion(self.submarine_id)
+            self.config.start_quat = leveled_quat
+            p.resetBasePositionAndOrientation(
+                self.submarine_id,
+                posObj=self.config.start_pos.tolist(),
+                ornObj=leveled_quat.tolist(),
+                physicsClientId=self.client_id,
+            )
         if self.config.auto_neutral_buoyancy:
             total_mass = self._compute_total_mass(self.submarine_id)
             self.config.water.displaced_volume = total_mass / self.config.water.rho
+        if self.config.auto_center_of_buoyancy:
+            self._configure_center_of_buoyancy(self.submarine_id)
+        # Keep a stable world-frame trim orientation at zero action.
+        self.config.water.trim_quat_world = np.asarray(self.config.start_quat, dtype=np.float64).copy()
         p.resetBaseVelocity(
             self.submarine_id,
             linearVelocity=[0.0, 0.0, 0.0],
@@ -162,6 +183,53 @@ class SubmarineSearchEnv(gym.Env):
         for j in range(joint_count):
             total += float(p.getDynamicsInfo(body_id, j, physicsClientId=self.client_id)[0])
         return total
+
+    def _configure_center_of_buoyancy(self, body_id: int) -> None:
+        """
+        Place the center of buoyancy above the URDF COM in local frame.
+        This creates passive roll/pitch righting at low speed.
+        """
+        assert self.client_id is not None
+        dyn = p.getDynamicsInfo(body_id, -1, physicsClientId=self.client_id)
+        com_local = np.asarray(dyn[3], dtype=np.float64)
+        up_axis = np.asarray(self.config.water.body_up_axis_local, dtype=np.float64)
+        up_norm = np.linalg.norm(up_axis)
+        if up_norm < 1e-9:
+            up_axis = np.array([0.0, 0.0, 1.0], dtype=np.float64)
+        else:
+            up_axis = up_axis / up_norm
+        cob_local = com_local + up_axis * self.config.center_of_buoyancy_z_offset
+        self.config.water.center_of_buoyancy_local = cob_local
+
+    def _find_horizontal_start_quaternion(self, body_id: int) -> np.ndarray:
+        """
+        Choose an orientation that minimizes vertical span of the body AABB.
+        This auto-corrects URDF frame conventions that otherwise start vertical.
+        """
+        assert self.client_id is not None
+        base_pos = self.config.start_pos.tolist()
+        angles = [0.0, 0.5 * np.pi, -0.5 * np.pi, np.pi]
+
+        best_quat = np.asarray(self.config.start_quat, dtype=np.float64)
+        best_z_span = np.inf
+
+        for rx in angles:
+            for ry in angles:
+                for rz in angles:
+                    quat = np.array(p.getQuaternionFromEuler([rx, ry, rz]), dtype=np.float64)
+                    p.resetBasePositionAndOrientation(
+                        body_id,
+                        posObj=base_pos,
+                        ornObj=quat.tolist(),
+                        physicsClientId=self.client_id,
+                    )
+                    aabb_min, aabb_max = p.getAABB(body_id, -1, physicsClientId=self.client_id)
+                    z_span = float(aabb_max[2] - aabb_min[2])
+                    if z_span < best_z_span:
+                        best_z_span = z_span
+                        best_quat = quat
+
+        return best_quat
 
     def _sample_target(self) -> np.ndarray:
         low = self.config.world_min
@@ -242,6 +310,11 @@ class SubmarineSearchEnv(gym.Env):
         assert self.submarine_id is not None
 
         action_arr = np.asarray(action, dtype=np.float64).reshape(4)
+        if self.config.forward_bias_action != 0.0:
+            action_arr = action_arr + np.array(
+                [self.config.forward_bias_action, self.config.forward_bias_action, 0.0, 0.0],
+                dtype=np.float64,
+            )
         action_clipped = np.clip(action_arr, -1.0, 1.0)
 
         for _ in range(self.config.sim_substeps):

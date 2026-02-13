@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import sys
+import time
 
 import numpy as np
+import pybullet as p
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -12,18 +15,46 @@ if str(ROOT) not in sys.path:
 from envs.submarine_search_env import SubmarineSearchEnv
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run random policy episodes for stability checks.")
+    parser.add_argument("--episodes", type=int, default=10, help="Number of episodes.")
+    parser.add_argument("--seed", type=int, default=7, help="Random seed.")
+    parser.add_argument("--gui", action="store_true", help="Show PyBullet GUI while running.")
+    parser.add_argument("--headless", action="store_true", help="Force DIRECT mode (no GUI).")
+    parser.add_argument(
+        "--real-time-factor",
+        type=float,
+        default=1.0,
+        help="Playback speed in GUI mode (1.0=real-time, 2.0=faster, 0.5=slower).",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
-    env = SubmarineSearchEnv(render_mode=None)
-    rng = np.random.default_rng(7)
-    episodes = 10
+    args = parse_args()
+    use_gui = (args.gui or not args.headless)
+    env = SubmarineSearchEnv(render_mode="human" if use_gui else None)
+    rng = np.random.default_rng(args.seed)
+    episodes = args.episodes
 
     success_count = 0
     returns = []
     max_abs_vel = 0.0
+    sleep_dt = env.config.sim_dt / max(args.real_time_factor, 1e-6)
+    print(f"Running random policy in {'GUI' if use_gui else 'DIRECT'} mode")
 
     try:
         for ep in range(episodes):
             obs, _ = env.reset(seed=int(rng.integers(0, 1_000_000)))
+            if use_gui and env.client_id is not None:
+                pos = obs[0:3]
+                p.resetDebugVisualizerCamera(
+                    cameraDistance=8.0,
+                    cameraYaw=35.0,
+                    cameraPitch=-25.0,
+                    cameraTargetPosition=[float(pos[0]), float(pos[1]), float(pos[2])],
+                    physicsClientId=env.client_id,
+                )
             done = False
             ep_return = 0.0
             step_count = 0
@@ -52,6 +83,16 @@ def main() -> None:
                     raise RuntimeError(
                         f"Velocity bound exceeded at episode {ep}, step {step_count}: vel={vel}, ang_vel={ang_vel}"
                     )
+                if use_gui:
+                    pos = obs[0:3]
+                    p.resetDebugVisualizerCamera(
+                        cameraDistance=8.0,
+                        cameraYaw=35.0,
+                        cameraPitch=-25.0,
+                        cameraTargetPosition=[float(pos[0]), float(pos[1]), float(pos[2])],
+                        physicsClientId=env.client_id,
+                    )
+                    time.sleep(sleep_dt)
 
             success_count += int(info["success"])
             returns.append(ep_return)
