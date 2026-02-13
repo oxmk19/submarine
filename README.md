@@ -18,6 +18,7 @@ This project implements a Gymnasium-compatible underwater search environment whe
 │   └── water_forces.py
 ├── scripts/
 │   ├── evaluate_policy.py
+│   ├── qt_motor_controller.py
 │   ├── run_manual_control.py
 │   ├── run_random_policy.py
 │   └── train_sb3.py
@@ -50,12 +51,17 @@ python scripts/run_random_policy.py
 python scripts/run_manual_control.py
 ```
 
-3. Train SAC (default):
+3. Qt motor-by-motor controller (GUI):
+```bash
+python scripts/qt_motor_controller.py
+```
+
+4. Train SAC (default):
 ```bash
 python scripts/train_sb3.py --algo sac --total-timesteps 300000
 ```
 
-4. Evaluate trained policy:
+5. Evaluate trained policy:
 ```bash
 python scripts/evaluate_policy.py --algo sac --model-path models/sac_submarine_search.zip --episodes 20
 ```
