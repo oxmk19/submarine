@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="submarine">
+
+  <!-- Base Link -->
+  <link name="base_link" />
+
+  <!-- submarineBody -->
+  <link name="submarineBody">
+    <inertial>
+      <origin xyz="0.0198000304243374 0.160306655769169 0.0347768424725871" rpy="0 0 0"/>
+      <mass value="245.0"/>
+      <inertia ixx="34.6169121880258" ixy="0.441155830654621" ixz="0.0295668083024074"
+               iyy="55.2283004720921" iyz="0.172081656792424" izz="81.1192917696619"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/base_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.898 0.918 0.929 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/base_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="body_link" type="fixed">
+    <parent link="base_link" />
+    <child link="submarineBody" />
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- IMU -->
+  <link name="imu_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.015" />
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="submarineBody" />
+    <child link="imu_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <!-- GPS -->
+  <link name="gps_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.000001" />
+      <inertia ixx="0.000000001" ixy="0" ixz="0" iyy="0.000000001" iyz="0" izz="0.00000001"/>
+    </inertial>
+  </link>
+
+  <joint name="gps_joint" type="fixed">
+    <parent link="submarineBody" />
+    <child link="gps_link" />
+    <origin xyz="0 -0.138 0.34" rpy="0 0 1.5707963267948966"/>
+  </joint>
+
+  <!-- =============== THRUSTERS =============== -->
+
+  <!-- Main rear motor -->
+  <link name="Main_motor_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="13.264"/>
+      <inertia ixx="0.62053" ixy="0" ixz="0" iyy="0.85374" iyz="0" izz="0.62053"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Main_motor_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0 0.502 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Main_motor_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Main_motor_joint" type="continuous">
+    <origin xyz="0.017189 -1.8618 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Main_motor_link"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="2000.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_up1 -->
+  <link name="Motor_up1_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_up1_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_up1_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_up1_joint" type="continuous">
+    <origin xyz="0.017189 0.50339 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_up1_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_up2 -->
+  <link name="Motor_up2_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_up2_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_up2_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_up2_joint" type="continuous">
+    <origin xyz="0.017189 -0.25861 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_up2_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_down1 -->
+  <link name="Motor_down1_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_down1_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_down1_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_down1_joint" type="continuous">
+    <origin xyz="0.017189 0.50339 -0.11858" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_down1_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_down2 -->
+  <link name="Motor_down2_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_down2_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_down2_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_down2_joint" type="continuous">
+    <origin xyz="0.017189 -0.25861 -0.11858" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_down2_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_right1 -->
+  <link name="Motor_right1_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_right1_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_right1_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_right1_joint" type="continuous">
+    <origin xyz="0.16959 0.73199 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_right1_link"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_right2 -->
+  <link name="Motor_right2_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_right2_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_right2_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_right2_joint" type="continuous">
+    <origin xyz="0.16959 -0.48721 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_right2_link"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_left1 -->
+  <link name="Motor_left1_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_left1_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_left1_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_left1_joint" type="continuous">
+    <origin xyz="-0.13013 0.73199 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_left1_link"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_left2 -->
+  <link name="Motor_left2_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.7525"/>
+      <inertia ixx="0.0027654" ixy="0" ixz="0" iyy="0.0027654" iyz="0" izz="0.00431"/>
+    </inertial>
+    <visual>
+      <origin xyz="-0.1 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_left2_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.286 0.663 0.329 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_left2_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_left2_joint" type="continuous">
+    <origin xyz="-0.13267 -0.48721 0.033821" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_left2_link"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_left (side bow) -->
+  <link name="Motor_left_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.2348439"/>
+      <inertia ixx="0.000197375" ixy="0" ixz="0" iyy="0.000197375" iyz="0" izz="0.000304085"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_left_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="1 0.937 0.137 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_left_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_left_joint" type="continuous">
+    <origin xyz="-0.58027 0.12677 0.0054523" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_left_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- Motor_right (side bow) -->
+  <link name="Motor_right_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.2348439"/>
+      <inertia ixx="0.000197375" ixy="0" ixz="0" iyy="0.000197375" iyz="0" izz="0.000304085"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_right_link.STL"/>
+      </geometry>
+      <material name="">
+        <color rgba="1 0.937 0.137 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="meshes/Motor_right_link.STL"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="Motor_right_joint" type="continuous">
+    <origin xyz="0.61465 0.12677 0.0054523" rpy="0 0 0"/>
+    <parent link="submarineBody"/>
+    <child link="Motor_right_link"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="500.0" velocity="100.0"/>
+  </joint>
+
+  <!-- =============== GAZEBO TAGS (ignored by PyBullet, but kept for completeness) =============== -->
+  <gazebo reference="submarineBody">
+    <mu1>0.1</mu1>
+    <mu2>0.1</mu2>
+    <kp>1e8</kp>
+    <kd>1.0</kd>
+    <selfCollide>false</selfCollide>
+  </gazebo>
+
+  <!-- These are safe to keep; PyBullet will ignore them -->
+  <gazebo reference="Main_motor_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_up1_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_up2_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_down1_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_down2_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_right1_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_right2_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_left1_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_left2_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_left_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+  <gazebo reference="Motor_right_link"><mu1>0.1</mu1><mu2>0.1</mu2><kp>1e8</kp><kd>1.0</kd></gazebo>
+
+</robot>
