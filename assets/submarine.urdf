@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <robot name="submarine">
 
-  <!-- Base Link -->
-  <link name="base_link" />
-
   <!-- submarineBody -->
   <link name="submarineBody">
     <inertial>
@@ -29,12 +26,6 @@
     </collision>
   </link>
 
-  <joint name="body_link" type="fixed">
-    <parent link="base_link" />
-    <child link="submarineBody" />
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
   <!-- IMU -->
   <link name="imu_link">
     <inertial>
@@ -55,7 +46,7 @@
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <mass value="0.000001" />
-      <inertia ixx="0.000000001" ixy="0" ixz="0" iyy="0.000000001" iyz="0" izz="0.00000001"/>
+      <inertia ixx="0.000000001" ixy="0" ixz="0" iyy="0.000000001" iyz="0" izz="0.000000001"/>
     </inertial>
   </link>
 
@@ -90,12 +81,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Main_motor_joint" type="continuous">
+  <joint name="Main_motor_joint" type="fixed">
     <origin xyz="0.017189 -1.8618 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Main_motor_link"/>
-    <axis xyz="0 1 0"/>
-    <limit effort="2000.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_up1 -->
@@ -121,12 +110,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_up1_joint" type="continuous">
+  <joint name="Motor_up1_joint" type="fixed">
     <origin xyz="0.017189 0.50339 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_up1_link"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_up2 -->
@@ -152,12 +139,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_up2_joint" type="continuous">
+  <joint name="Motor_up2_joint" type="fixed">
     <origin xyz="0.017189 -0.25861 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_up2_link"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_down1 -->
@@ -183,12 +168,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_down1_joint" type="continuous">
+  <joint name="Motor_down1_joint" type="fixed">
     <origin xyz="0.017189 0.50339 -0.11858" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_down1_link"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_down2 -->
@@ -214,12 +197,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_down2_joint" type="continuous">
+  <joint name="Motor_down2_joint" type="fixed">
     <origin xyz="0.017189 -0.25861 -0.11858" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_down2_link"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_right1 -->
@@ -245,12 +226,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_right1_joint" type="continuous">
+  <joint name="Motor_right1_joint" type="fixed">
     <origin xyz="0.16959 0.73199 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_right1_link"/>
-    <axis xyz="1 0 0"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_right2 -->
@@ -276,12 +255,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_right2_joint" type="continuous">
+  <joint name="Motor_right2_joint" type="fixed">
     <origin xyz="0.16959 -0.48721 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_right2_link"/>
-    <axis xyz="1 0 0"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_left1 -->
@@ -307,12 +284,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_left1_joint" type="continuous">
+  <joint name="Motor_left1_joint" type="fixed">
     <origin xyz="-0.13013 0.73199 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_left1_link"/>
-    <axis xyz="1 0 0"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_left2 -->
@@ -338,12 +313,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_left2_joint" type="continuous">
+  <joint name="Motor_left2_joint" type="fixed">
     <origin xyz="-0.13267 -0.48721 0.033821" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_left2_link"/>
-    <axis xyz="1 0 0"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_left (side bow) -->
@@ -369,12 +342,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_left_joint" type="continuous">
+  <joint name="Motor_left_joint" type="fixed">
     <origin xyz="-0.58027 0.12677 0.0054523" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_left_link"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- Motor_right (side bow) -->
@@ -400,12 +371,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="Motor_right_joint" type="continuous">
+  <joint name="Motor_right_joint" type="fixed">
     <origin xyz="0.61465 0.12677 0.0054523" rpy="0 0 0"/>
     <parent link="submarineBody"/>
     <child link="Motor_right_link"/>
-    <axis xyz="0 0 1"/>
-    <limit effort="500.0" velocity="100.0"/>
   </joint>
 
   <!-- =============== GAZEBO TAGS (ignored by PyBullet, but kept for completeness) =============== -->

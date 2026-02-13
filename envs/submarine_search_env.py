@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+import xml.etree.ElementTree as ET
 
 import gymnasium as gym
 import numpy as np
@@ -79,6 +80,28 @@ class SubmarineSearchEnv(gym.Env):
         root = Path(__file__).resolve().parents[1]
         return str(root / "assets" / "submarine.urdf")
 
+    def _fallback_urdf_path(self) -> str:
+        root = Path(__file__).resolve().parents[1]
+        return str(root / "assets" / "submarine_fallback.urdf")
+
+    def _urdf_meshes_exist(self, urdf_path: str) -> bool:
+        urdf_file = Path(urdf_path)
+        if not urdf_file.exists():
+            return False
+        try:
+            root = ET.parse(urdf_file).getroot()
+        except ET.ParseError:
+            return False
+
+        for mesh in root.findall(".//mesh"):
+            filename = mesh.attrib.get("filename")
+            if not filename:
+                continue
+            mesh_path = (urdf_file.parent / filename).resolve()
+            if not mesh_path.exists():
+                return False
+        return True
+
     def _reset_world(self) -> None:
         assert self.client_id is not None
         p.resetSimulation(physicsClientId=self.client_id)
@@ -86,7 +109,8 @@ class SubmarineSearchEnv(gym.Env):
         p.setTimeStep(self.config.sim_dt / self.config.sim_substeps, physicsClientId=self.client_id)
         p.setRealTimeSimulation(0, physicsClientId=self.client_id)
 
-        plane_id = p.loadURDF("plane.urdf", physicsClientId=self.client_id)
+        plane_urdf = str(Path(pybullet_data.getDataPath()) / "plane.urdf")
+        plane_id = p.loadURDF(plane_urdf, physicsClientId=self.client_id)
         p.resetBasePositionAndOrientation(
             plane_id,
             posObj=[0.0, 0.0, -20.0],
@@ -94,13 +118,33 @@ class SubmarineSearchEnv(gym.Env):
             physicsClientId=self.client_id,
         )
 
-        self.submarine_id = p.loadURDF(
-            self._urdf_path(),
-            basePosition=self.config.start_pos.tolist(),
-            baseOrientation=self.config.start_quat.tolist(),
-            useFixedBase=False,
-            physicsClientId=self.client_id,
-        )
+        main_urdf = self._urdf_path()
+        use_main = self._urdf_meshes_exist(main_urdf)
+        if use_main:
+            try:
+                self.submarine_id = p.loadURDF(
+                    main_urdf,
+                    basePosition=self.config.start_pos.tolist(),
+                    baseOrientation=self.config.start_quat.tolist(),
+                    useFixedBase=False,
+                    physicsClientId=self.client_id,
+                )
+            except p.error:
+                use_main = False
+
+        if not use_main:
+            fallback = self._fallback_urdf_path()
+            print(
+                f"[SubmarineSearchEnv] Failed to load '{main_urdf}' or mesh files are missing. "
+                f"Falling back to '{fallback}'."
+            )
+            self.submarine_id = p.loadURDF(
+                fallback,
+                basePosition=self.config.start_pos.tolist(),
+                baseOrientation=self.config.start_quat.tolist(),
+                useFixedBase=False,
+                physicsClientId=self.client_id,
+            )
         if self.config.auto_neutral_buoyancy:
             total_mass = self._compute_total_mass(self.submarine_id)
             self.config.water.displaced_volume = total_mass / self.config.water.rho

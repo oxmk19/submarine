@@ -7,7 +7,8 @@ This project implements a Gymnasium-compatible underwater search environment whe
 ```text
 .
 ├── assets/
-│   └── submarine.urdf
+│   ├── submarine.urdf
+│   └── submarine_fallback.urdf
 ├── envs/
 │   ├── __init__.py
 │   └── submarine_search_env.py
@@ -153,3 +154,7 @@ Recommended tuning order:
 4. No GUI appears
    - run `run_manual_control.py`
    - ensure desktop/driver supports OpenGL for PyBullet GUI
+
+5. URDF fails to load with mesh errors
+   - ensure `assets/meshes/*.STL` files referenced by `assets/submarine.urdf` are present
+   - env automatically falls back to `assets/submarine_fallback.urdf` if mesh URDF load fails
